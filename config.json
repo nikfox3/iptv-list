@@ -1,0 +1,8 @@
+{
+  "port": 8000,
+  "base_url": "",
+  "epg_sources": [
+    "https://i.mjh.nz/PlutoTV/us.xml.gz",
+    "https://i.mjh.nz/SamsungTVPlus/us.xml.gz"
+  ]
+}

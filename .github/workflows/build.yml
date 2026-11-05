@@ -1,0 +1,39 @@
+name: Build playlist + EPG
+
+on:
+  push:
+    branches: [main]
+    paths: ["channels.csv", "config.json", "iptv.py", ".github/workflows/build.yml"]
+  schedule:
+    - cron: "15 */6 * * *"   # refresh the guide every 6 hours
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Build
+        run: python3 iptv.py build --base-url "${{ steps.pages.outputs.base_url }}"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: output
+      - id: deploy
+        uses: actions/deploy-pages@v4
