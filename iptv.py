@@ -83,6 +83,18 @@ def norm(name):
     return re.sub(r"[^a-z0-9]+", "", name)
 
 
+def name_keys(name):
+    """Exact key first, then trailing word runs, so 'FS1 Fox Sports 1 HD' also matches 'Fox Sports 1'."""
+    clean = re.sub(r"\((.*?)\)|\[(.*?)\]", " ", name.lower())
+    words = [w for w in re.findall(r"[a-z0-9]+", clean) if w not in ("hd", "fhd", "uhd", "sd", "4k", "hevc", "h265")]
+    keys = ["".join(words)]
+    for k in range(1, len(words) - 1):
+        tail = "".join(words[k:])
+        if len(tail) >= 8:
+            keys.append(tail)
+    return keys
+
+
 def load_channels():
     if not os.path.exists(CHANNELS):
         sys.exit("channels.csv not found")
@@ -103,6 +115,15 @@ def save_channels(rows):
             w.writerow({k: r.get(k, "") for k in FIELDS})
 
 
+def sort_rows(rows):
+    """Groups listed in config.json "group_order" come first (in that order), then the rest A-Z."""
+    order = [g.lower() for g in load_config().get("group_order", [])]
+    def key(c):
+        g = (c["group"] or "Other").lower()
+        return (order.index(g) if g in order else len(order), g, c["name"].lower())
+    return sorted(rows, key=key)
+
+
 # ---------- import ----------
 def parse_m3u(text):
     out, cur = [], None
@@ -111,7 +132,9 @@ def parse_m3u(text):
         if line.startswith("#EXTINF"):
             attrs = dict(re.findall(r'([\w-]+)="([^"]*)"', line))
             title = line.rsplit(",", 1)[-1].strip() if "," in line else ""
-            cur = {"name": title or attrs.get("tvg-name", ""), "group": attrs.get("group-title", ""),
+            name = re.sub(r"\s*(\(\d+[pi]\)|\[[^\]]*\])", "", title or attrs.get("tvg-name", "")).strip()
+            group = attrs.get("group-title", "").split(";")[0].strip()
+            cur = {"name": name, "group": "" if group == "Undefined" else group,
                    "logo": attrs.get("tvg-logo", ""), "epg_id": attrs.get("tvg-id", ""),
                    "user_agent": attrs.get("http-user-agent", ""), "referrer": attrs.get("http-referrer", "")}
         elif line.startswith("#EXTVLCOPT") and cur is not None:
@@ -135,8 +158,12 @@ def cmd_import(a):
         new = [c for c in new if a.name_filter.lower() in c["name"].lower()]
     existing = load_channels() if os.path.exists(CHANNELS) else []
     seen = {c["url"] for c in existing}
-    added = [c for c in new if c["url"] not in seen]
-    save_channels(existing + added)
+    added = []
+    for c in new:
+        if c["url"] not in seen:
+            seen.add(c["url"])
+            added.append(c)
+    save_channels(sort_rows(existing + added))
     print(f"Imported {len(added)} channels ({len(new) - len(added)} duplicates skipped). "
           f"channels.csv now has {len(existing) + len(added)}. Edit it to keep only what you want.")
 
@@ -158,7 +185,7 @@ def probe(c):
 def cmd_check(a):
     rows = load_channels()
     dead = []
-    with ThreadPoolExecutor(16) as ex:
+    with ThreadPoolExecutor(48) as ex:
         for c, ok, info in ex.map(probe, rows):
             print(("  OK   " if ok else "  DEAD ") + c["name"] + ("" if ok else f"  ({info})"))
             if not ok:
@@ -200,7 +227,11 @@ def build_epg(rows, sources):
                     if cid and cid not in claimed:
                         hits = list(by_id.get(cid, []))
                         for d in el.findall("display-name"):
-                            hits += by_name.get(norm(d.text or ""), [])
+                            for key in name_keys(d.text or ""):
+                                found = by_name.get(key, [])
+                                if found:
+                                    hits += found
+                                    break
                         if len(cid) >= 12:
                             hits += [k for k, c in enumerate(rows) if k not in resolved and cid in c["url"]]
                         hits = [k for k in hits if k not in resolved]

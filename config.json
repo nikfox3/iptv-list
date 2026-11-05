@@ -1,8 +1,22 @@
 {
   "port": 8000,
   "base_url": "",
+  "group_order": ["News", "Sports", "Business", "Weather", "Legislative"],
   "epg_sources": [
-    "https://i.mjh.nz/PlutoTV/us.xml.gz",
-    "https://i.mjh.nz/SamsungTVPlus/us.xml.gz"
+    "https://i.mjh.nz/PlutoTV/all.xml.gz",
+    "https://i.mjh.nz/SamsungTVPlus/all.xml.gz",
+    "https://i.mjh.nz/Plex/all.xml.gz",
+    "https://i.mjh.nz/Roku/all.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_US2.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_US_LOCALS1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_US_SPORTS1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_FANDUEL1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_BEIN1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_DISTROTV1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_UK1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_CA2.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_AU1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_NZ1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_IE1.xml.gz"
   ]
 }
